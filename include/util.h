@@ -66,5 +66,3 @@ private:
 
 #endif  // UTILITY_H_
 
-
-

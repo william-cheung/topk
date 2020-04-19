@@ -240,9 +240,7 @@ int main(int argc, char *argv[]) {
 	thread_pool.close();
 	thread_pool.join();
 
-
 	cxx_printf(" ... Done (%.2lfs)\n", timer.elapsed_seconds());
-
 
 	vector<pair<string, int>> result = tks.get_result();
 	if (result.size() > 0) {
