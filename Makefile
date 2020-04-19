@@ -28,7 +28,10 @@ $(OBJ_DIR)/%.o: $(TST_DIR)/%.cpp mkdirs
 	$(CXX) -o $(BIN_DIR)/$@ $< $(LIBS)
 
 test: thread_pool_test topk_solver_test util_test
-	ls $(BIN_DIR)/*_test | xargs -i sh -xc {}
+	echo $^ | tr ' ' '\n' | xargs -i sh -xc $(BIN_DIR)/{}
+
+ptest: performance_test
+	$(BIN_DIR)/performance_test
 
 clean:
 	rm -f $(OBJ_DIR)/*.o
