@@ -21,7 +21,6 @@
 	} \
 }
 
-
 #define ASSERT_EQUAL(expected, actual) { \
 	decltype(expected) e = (expected); \
 	decltype(actual) a = (actual); \
@@ -32,7 +31,6 @@
 		exit(EXIT_FAILURE); \
 	} \
 }
-
 
 #endif  // UNITTEST_H_
 

@@ -1,20 +1,18 @@
 
-#include <fstream>
-#include <vector>
-#include <unordered_map>
-#include <utility>
+#include <fstream>       // for std::fstream
+#include <vector>        // for std::vector
+#include <unordered_map> // for std::unordered_map
 
-#include <cstring>
-#include <unistd.h>  // for getopt
-#include <stdlib.h>
+#include <unistd.h>      // for getopt
 
-#include "topk_solver.h" 
-#include "thread_pool.h"
-#include "util.h"
+#include "topk_solver.h" // for TopKSolver
+#include "thread_pool.h" // for ThreadPool, Future
+#include "util.h"        // for cxx_printf, format, Timer
 
 using namespace std;
 
 
+// Find top k frequent elements in a file.
 vector<pair<string, int>> topk(const string& filename, int k) {
 	fstream fs(filename, fstream::in);
 	if (!fs.is_open()) {
@@ -25,18 +23,7 @@ vector<pair<string, int>> topk(const string& filename, int k) {
 	unordered_map<string, int> count;
 	string line;
 	while (getline(fs, line)) {
-		vector<string> parts;
-		split(line, parts);
-		int n = parts.size();
-		if (n < 1 || n > 2) {
-			throw logic_error(
-				format("ill formatted file '%s'",
-					filename.c_str()));
-		}
-		if (n == 1)
-			++count[parts[0]];
-		else
-			count[parts[0]] += stoi(parts[1]);
+		++count[line];
 	}
 
 	TopKSolver tks(k);
@@ -44,35 +31,6 @@ vector<pair<string, int>> topk(const string& filename, int k) {
 		tks.add(p);
 	}
 	return tks.get_result();
-}
-
-
-void flush(const unordered_map<string, int>& buffer, fstream& fs) {
-	const int buf_len = 8192;
-	char buf[buf_len];
-	int n = 0;
-
-	for (auto& p: buffer) {
-		string line;
-		if (p.second > 1) {
-			line.append(p.first)
-				.append(1, ' ')
-				.append(to_string(p.second))
-				.append(1, '\n');
-		} else { 
-			line.append(p.first).append(1, '\n');
-		}
-
-		int size = line.size();
-		if (n + size < buf_len) {
-			memcpy(buf+n, line.c_str(), size);
-			n += size;
-		} else {
-			fs.write(buf, n);
-			n = 0;
-		}
-	}
-	fs.write(buf, n);
 }
 
 inline string shardname(int i) {
@@ -85,6 +43,7 @@ inline string shardname(const string& input_file, int nshards, int i) {
 	return shardname(i);
 }
 
+// Partition the input file into a number of shards using hashing.
 int partition(const string& filename, int nshards) {
 	if (nshards < 2) {
 		cxx_printf("ERROR: invalid nshards: %d\n", nshards);
@@ -98,15 +57,11 @@ int partition(const string& filename, int nshards) {
 		return -1;
 	}
 
-
 	vector<fstream> shards;
 	for (int i = 0; i < nshards; i++) {
 		shards.emplace_back(shardname(i), fstream::out);
 	}
 
-
-	//vector<unordered_map<string, int>> buffers(nshards);
-	
 	int ret = 0;
 	for (int i = 0; i < nshards; i++) {
 		if (!shards[i].is_open()) {
@@ -120,17 +75,13 @@ int partition(const string& filename, int nshards) {
 	while (getline(fs, line)) {
 		size_t h = hash<string>{}(line);
 		int i = h % nshards;
-		shards[i] << line << endl;
-//		++buffers[i][line];
-//		if (buffers[i].size() > 100000) {
-//			flush(buffers[i], ss[i]);
-//			buffers[i].clear();
-//		}
+		if (!(shards[i] << line << endl)) {
+			cxx_printf("ERROR: error occurred when writing"
+					" data to file '%s'",
+					shardname(i).c_str());
+			return -1;
+		}
 	}
-
-//	for (int i = 0; i < nshards; i++) {
-//		flush(buffers[i], ss[i]);
-//	}
 }
 
 
@@ -142,9 +93,9 @@ void print_usage(const string& program_name) {
 	cxx_printf("Options:\n");
 	cxx_printf("  -k K         find top K frequent elements in FILE, instead of top\n");
 	cxx_printf("                 100\n");
-	cxx_printf("  -s NSHARDS   specify the number of shards; the default is 1\n");
+	cxx_printf("  -s NSHARDS   partition FILE into NSHARDS shards; the default is 1\n");
 	cxx_printf("  -t NTHREADS  number of worker threads to execute tasks; the goal of\n");
-	cxx_printf("                 each task is to find top k elments in a shard; the\n");
+	cxx_printf("                 each task is to find top K elments in one shard; the\n");
 	cxx_printf("                 default is 1\n");
 	cxx_printf("  -h           display this help and exit\n");
 }
@@ -211,8 +162,8 @@ int main(int argc, char *argv[]) {
 	}
 
 	timer.reset();
-	cxx_printf("Find top %d in %d shard(s) using %d thread(s),"
-			" then merge the results ...\n", 
+	cxx_printf("Find top %d in %d shard(s) respectively using %d"
+			" thread(s), then merge the results ...\n", 
 			flags.k, flags.nshards, flags.nthreads);
 
 	ThreadPool thread_pool(flags.nthreads);
@@ -232,7 +183,7 @@ int main(int argc, char *argv[]) {
 			string name = shardname(
 					flags.file, flags.nshards, i);
 			cxx_printf("ERROR: something went wrong when"
-					" handling shard '%s': %s\n", 
+					" handling shard '%s': %s\n",
 					name.c_str(), 
 					futures[i].error().c_str());
 		}

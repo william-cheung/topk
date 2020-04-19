@@ -22,7 +22,7 @@ class FutureImpl {
 	T value_; // return value of the associated task execution
 	bool ready_; // true if execution state of the task is ready
 	bool success_; // true if the task is successfully executed
-	std::string error_; // reason why the task get failed
+	std::string error_; // reason why the task gets failed
 
 public:
 	FutureImpl(): ready_(false), success_(false) {}
@@ -42,7 +42,7 @@ public:
 		return r;
 	}
 
-	std::string error() {
+	std::string error() const {
 		return error_;
 	}
 
@@ -66,11 +66,11 @@ class Future {
 public:
 	Future(): impl_(new FutureImpl<T>()) {}
 
-	bool get(T *value) {
+	bool get(T *value) const {
 		return impl_->get(value);
 	}
 
-	std::string error() {
+	std::string error() const {
 		return impl_->error();
 	}
 
@@ -120,7 +120,6 @@ private: // Inner types
 				"task has been cancelled");
 		}
 
-		// 
 		Future<R> get_future() {
 			return future_;
 		}
@@ -143,7 +142,7 @@ private: // Inner types
 		std::queue<Task*> tasks_;  // the actural task queue
 		std::mutex mutex_;   // lock protecting the data structure
 		std::condition_variable cond_;  // for efficient waiting
-		volatile bool closed_;  // true if the task queue is closed 
+		bool closed_;  // true if the task queue is closed
 	
 	public:
 		TaskQueue(): closed_(false) {}
@@ -198,6 +197,7 @@ private: // Inner types
 
 		// Returns true if the task queue has been closed
 		bool closed() {
+			std::unique_lock<std::mutex> lock(mutex_);
 			return closed_;
 		}
 	
@@ -232,7 +232,7 @@ public:
 	// Sumbit a task to the thread pool. fn will be extected
 	// asynchronously in one of the worker threads of the pool.
 	template <class Fn, class... Args>
-	auto async_apply(Fn&& fn, Args&&... args) 
+	auto async_apply(Fn&& fn, Args&&... args)
 		-> Future<typename std::result_of<Fn(Args...)>::type> {
  		using R = typename std::result_of<Fn(Args...)>::type;
     		auto f = std::bind(std::forward<Fn>(fn), 
