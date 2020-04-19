@@ -27,8 +27,6 @@ class FutureImpl {
 public:
 	FutureImpl(): ready_(false), success_(false) {}
 
-	~FutureImpl() {}
-
 	// Get execution state of a task. Returns true if the
 	// associated task has been successfully exectuted.
 	// It will block until the execution result of the task
@@ -96,6 +94,8 @@ private: // Inner types
 		// the execution result that the task has been canceled and
 		// will never be executed.
 		virtual void cancel() = 0;
+
+		virtual ~Task() {}
 	};
 
 	template<class R>
