@@ -95,8 +95,8 @@ void print_usage(const string& program_name) {
 	cxx_printf("                 100\n");
 	cxx_printf("  -s NSHARDS   partition FILE into NSHARDS shards; the default is 1\n");
 	cxx_printf("  -t NTHREADS  number of worker threads to execute tasks; the goal of\n");
-	cxx_printf("                 each task is to find top K elments in one shard; the\n");
-	cxx_printf("                 default is 1\n");
+	cxx_printf("                 each task is to find top 100 (or K if specified)\n");
+	cxx_printf("                 frequent elements in one shard; the default is 1\n");
 	cxx_printf("  -h           display this help and exit\n");
 }
 
