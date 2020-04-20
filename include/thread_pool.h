@@ -180,7 +180,10 @@ private: // Inner types
 		// Close the task queue
 		void close() {
 			std::unique_lock<std::mutex> lock(mutex_);
-			
+
+			if (closed_)
+				return;
+
 			// clear tasks in the queue
 			while (!tasks_.empty()) {
 				Task *task = tasks_.front();
@@ -229,6 +232,11 @@ public:
 		}
 	}
 
+	~ThreadPool() {
+		close();
+		join();
+	}
+
 	// Sumbit a task to the thread pool. fn will be extected
 	// asynchronously in one of the worker threads of the pool.
 	template <class Fn, class... Args>
@@ -253,10 +261,13 @@ public:
 		return task_queue_.closed();
 	}
 	
-	// Wait all worker threads to terminate. 
+	// Wait all worker threads to terminate.
+	// The pool must be closed before join, or join will never return.
 	void join() {
-		for (int i = 0; i < nthreads_; ++i)
-			threads_[i].join();
+		for (int i = 0; i < nthreads_; ++i) {
+			if (threads_[i].joinable())
+				threads_[i].join();
+		}
 	}
 
 private:

@@ -28,9 +28,7 @@ void test_counter() {
 	}
 	for (auto&& future: futures) {
 		future.get(NULL);
-	}	
-	pool.close();
-	pool.join();
+	}
 
 	ASSERT_EQUAL(ntasks * delta, count);
 }
@@ -67,16 +65,22 @@ void test_sum() {
 		int value;
 		future.get(&value);
 		actrual += value;
-	}	
-	pool.close();
-	pool.join();
+	}
 
 	ASSERT_EQUAL(expected, actrual);
+}
+
+void test_join_twice() {
+	ThreadPool pool(4);
+	pool.close();
+	pool.join();
+	pool.join();
 }
 
 int main() {
 	RUN_TEST("concurrent increment", test_counter);
 	RUN_TEST("summation of a vector", test_sum);
+	RUN_TEST("join twice", test_join_twice);
 	return 0;
 }
 
