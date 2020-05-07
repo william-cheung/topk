@@ -9,8 +9,8 @@
 #include <condition_variable> // for std::condition_variable
 
 
-// Futures are used to retrieve execution result of a task
-// summitted to a thread pool. Each future returned by
+// Futures are used to retrieve execution results of tasks
+// summitted to thread pools. Each future returned by
 // ThreadPool::apply_async() (see below) is associated with
 // a unique task, and vice versa.
 
